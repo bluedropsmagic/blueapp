@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "BlueApp",
+    "slug": "blue-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "ios": {
+      "supportsTablet": true,
+      "jsEngine": "hermes",
+      "bundleIdentifier": "com.blueapp.blueapp"
+    },
+    "android": {
+      "jsEngine": "hermes"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png",
+      "viewport": {
+        "width": "device-width",
+        "initialScale": 1,
+        "maximumScale": 1,
+        "userScalable": false,
+        "viewportFit": "cover"
+      },
+      "build": {
+        "babel": {
+          "include": ["@expo/vector-icons"]
+        }
+      }
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
