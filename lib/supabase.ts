@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const supabaseUrl = 'https://dkgezgbzzrzjujfucpun.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrZ2V6Z2J6enJ6anVqZnVjcHVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0NjM5NzksImV4cCI6MjA2NjAzOTk3OX0.mYdLjKGOAHnyjNEQsxdAb5duKnuY1L88a7sghhFklgI';
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Custom storage adapter for Supabase Auth
 const ExpoSecureStoreAdapter = {
@@ -44,13 +44,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    // Add error handling for invalid tokens
+    flowType: 'pkce',
+    // Enhanced error handling for invalid tokens
     onAuthStateChange: (event, session) => {
       if (event === 'TOKEN_REFRESHED') {
         console.log('Token refreshed successfully');
       } else if (event === 'SIGNED_OUT') {
         console.log('User signed out');
+      } else if (event === 'SIGNED_IN') {
+        console.log('User signed in');
       }
+    },
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'blueapp-expo@1.0.0',
     },
   },
 });
@@ -60,7 +68,6 @@ export interface Profile {
   id: string;
   user_id: string;
   name: string;
-  email: string;
   avatar_url?: string;
   created_at: string;
   updated_at: string;
@@ -101,7 +108,7 @@ export const getOrCreateProfile = async (userId: string): Promise<Profile | null
       .from('profiles')
       .select('*')
       .eq('user_id', userId)
-      .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors when no rows found
+      .maybeSingle();
 
     if (selectError && selectError.code !== 'PGRST116') {
       console.error('Error fetching profile:', selectError);
@@ -116,7 +123,6 @@ export const getOrCreateProfile = async (userId: string): Promise<Profile | null
     const newProfile = {
       user_id: userId,
       name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-      email: user.email || '',
       avatar_url: user.user_metadata?.avatar_url || null,
     };
 
@@ -187,6 +193,51 @@ export const updateUserProfile = async (userId: string, updates: Partial<Profile
   }
 };
 
+// Helper function to add a dose record
+export const addDoseRecord = async (userId: string, doseType: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('doses')
+      .insert([{
+        user_id: userId,
+        dose_type: doseType,
+        taken_at: new Date().toISOString(),
+      }]);
+
+    if (error) {
+      console.error('Error adding dose record:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Unexpected error adding dose:', error);
+    return false;
+  }
+};
+
+// Helper function to get user doses
+export const getUserDoses = async (userId: string, limit = 100): Promise<Dose[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('doses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('taken_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching doses:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Unexpected error fetching doses:', error);
+    return [];
+  }
+};
+
 // Helper function to check if session is valid
 export const isSessionValid = async (): Promise<boolean> => {
   try {
@@ -229,5 +280,26 @@ export const clearInvalidSession = async (): Promise<void> => {
     console.log('Invalid session cleared');
   } catch (error) {
     console.error('Error clearing invalid session:', error);
+  }
+};
+
+// Helper function to test connection
+export const testConnection = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(1);
+
+    if (error) {
+      console.error('Connection test failed:', error);
+      return false;
+    }
+
+    console.log('Supabase connection test successful');
+    return true;
+  } catch (error) {
+    console.error('Connection test error:', error);
+    return false;
   }
 };

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { supabase, Profile, getOrCreateProfile, updateUserProfile } from '@/lib/supabase';
+import { supabase, Profile, getOrCreateProfile, updateUserProfile, testConnection } from '@/lib/supabase';
 import { AuthError, User } from '@supabase/supabase-js';
 
 interface AuthUser {
@@ -143,6 +143,12 @@ export const useAuthStore = create<AuthStore>()(
       initialize: async () => {
         try {
           set({ isLoading: true });
+          
+          // Test Supabase connection first
+          const connectionOk = await testConnection();
+          if (!connectionOk) {
+            console.warn('Supabase connection test failed, but continuing...');
+          }
           
           // Check for existing Supabase session
           const { data: { session }, error } = await supabase.auth.getSession();
