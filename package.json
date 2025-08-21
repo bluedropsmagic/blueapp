@@ -4,12 +4,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "EXPO_NO_TELEMETRY=1 npx expo start --clear --max-workers 2",
-    "build:web": "npx expo export --platform web",
-    "build": "npx expo export --platform web",
-    "start": "npx expo start --max-workers 2",
+    "dev": "EXPO_NO_TELEMETRY=1 npx expo start --max-workers 1",
+    "build:web": "NODE_ENV=production npx expo export --platform web --minify",
+    "build": "NODE_ENV=production npx expo export --platform web --minify",
+    "build:fast": "npx expo export --platform web --no-minify",
+    "start": "npx expo start --max-workers 1",
     "preview": "npx serve dist",
-    "lint": "npx expo lint"
+    "lint": "npx expo lint",
+    "clean": "npx expo install --fix && rm -rf node_modules/.cache"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",

@@ -3,7 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"],
+      "@/sections/*": ["./src/sections/*"],
+      "@/shared/*": ["./src/shared/*"]
     }
   },
   "include": [

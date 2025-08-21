@@ -1,9 +1,9 @@
 import { Redirect } from 'expo-router';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/shared/stores/authStore';
 import { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { SplashScreen } from '@/components/SplashScreen';
-import { theme } from '@/constants/theme';
+import { SplashScreen } from '@/shared/components/SplashScreen';
+import { theme } from '@/shared/constants/theme';
 
 export default function Index() {
   const { isAuthenticated, isInitialized } = useAuthStore();
