@@ -54,7 +54,8 @@ export default function RootLayout() {
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Dynamic import to avoid SSR issues
-        const { useNotificationStore } = await import('@/shared/stores/notificationStore');
+        const { useNotificationStore } = await import('@/shared/stores/notificationStore')
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
         const notificationStore = useNotificationStore.getState();
         
         // Initialize with timeout to prevent hanging
