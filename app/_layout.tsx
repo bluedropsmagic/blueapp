@@ -33,18 +33,8 @@ export default function RootLayout() {
     const initAuth = async () => {
       try {
         await initializeAuth();
-        
-        // Test Supabase connection and sync data
-        const { syncWithSupabase } = await import('@/stores/doseStore');
-        const doseStore = syncWithSupabase;
-        if (typeof doseStore === 'function') {
-          doseStore().catch(error => {
-            console.warn('Initial data sync failed:', error);
-          });
-        }
       } catch (error) {
         console.error('Auth initialization failed:', error);
-        // Auth store will handle clearing invalid sessions internally
       }
     };
     

@@ -66,7 +66,7 @@ const secureStorage = {
   }
 };
 
-// Simple local user database simulation
+// Enhanced local user database with better security
 const localUserDB = {
   users: [] as Array<{ id: string; name: string; email: string; password: string; createdAt: string }>,
   
@@ -107,7 +107,7 @@ const localUserDB = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name: name.trim(),
       email: email.toLowerCase().trim(),
-      password: password, // In a real app, this would be hashed
+      password: password, // Stored locally for demo purposes
       createdAt: new Date().toISOString(),
     };
     

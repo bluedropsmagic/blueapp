@@ -2,8 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { supabase, addDoseRecord, getUserDoses } from '@/lib/supabase';
-import { useAuthStore } from '@/stores/authStore';
 
 interface DoseSchedule {
   time: string;
@@ -48,7 +46,6 @@ interface DoseStore {
   checkAndResetDaily: () => void;
   getTodaySymptomEntry: () => DailySymptomEntry | null;
   saveDailySymptoms: (symptoms: { [symptomId: number]: number }) => void;
-  syncWithSupabase: () => Promise<void>;
 }
 
 // Storage adapter que funciona tanto no web quanto mobile
@@ -153,14 +150,6 @@ export const useDoseStore = create<DoseStore>()(
         set(state => ({
           doses: [...state.doses, newDose]
         }));
-        
-        // Sync with Supabase in background
-        const { user } = useAuthStore.getState();
-        if (user) {
-          addDoseRecord(user.id, type).catch(error => {
-            console.warn('Failed to sync dose with Supabase:', error);
-          });
-        }
       },
       
       getTodayDoses: () => {
@@ -310,45 +299,6 @@ export const useDoseStore = create<DoseStore>()(
           const symptomId = parseInt(symptomIdStr);
           get().addSymptom(symptomId, rating);
         });
-      },
-      syncWithSupabase: async () => {
-        const { user } = useAuthStore.getState();
-        if (!user) return;
-
-        try {
-          // Fetch recent doses from Supabase
-          const supabaseDoses = await getUserDoses(user.id, 50);
-          
-          // Convert Supabase doses to local format
-          const convertedDoses: Dose[] = supabaseDoses.map(dose => ({
-            id: dose.id,
-            timestamp: new Date(dose.taken_at).getTime(),
-            type: dose.dose_type,
-          }));
-
-          // Merge with local doses (avoid duplicates)
-          const { doses: localDoses } = get();
-          const mergedDoses = [...localDoses];
-          
-          convertedDoses.forEach(supabaseDose => {
-            const exists = localDoses.some(localDose => 
-              Math.abs(localDose.timestamp - supabaseDose.timestamp) < 60000 && // Within 1 minute
-              localDose.type === supabaseDose.type
-            );
-            
-            if (!exists) {
-              mergedDoses.push(supabaseDose);
-            }
-          });
-
-          // Sort by timestamp
-          mergedDoses.sort((a, b) => b.timestamp - a.timestamp);
-
-          set({ doses: mergedDoses });
-          console.log('Successfully synced doses with Supabase');
-        } catch (error) {
-          console.warn('Failed to sync with Supabase:', error);
-        }
       }
     }),
     {
