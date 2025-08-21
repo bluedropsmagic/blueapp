@@ -4,6 +4,9 @@
 -import { HeaderMenu } from '@/components/HeaderMenu';
 -import { BottomIconsBar } from '@/components/BottomIconsBar';
 -import { UsefulContainer } from '@/components/UsefulContainer';
+import { HeaderMenu } from '@/shared/components/HeaderMenu';
+import { BottomIconsBar } from '@/shared/components/BottomIconsBar';
+import { UsefulContainer } from '@/shared/components/UsefulContainer';
 -import { DoseTracker } from '@/components/DoseTracker';
 -import { ProgressCard } from '@/components/ProgressCard';
 -import { WeeklyComplianceChart } from '@/components/WeeklyComplianceChart';
@@ -27,6 +30,11 @@
 -import { useOnboardingStore } from '@/stores/onboardingStore';
 -import { formatDate } from '@/utils/dateUtils';
 -import { theme } from '@/constants/theme';
+import { useDoseStore } from '@/shared/stores/doseStore';
+import { useAuthStore } from '@/shared/stores/authStore';
+import { useOnboardingStore } from '@/shared/stores/onboardingStore';
+import { formatDate } from '@/shared/utils/dateUtils';
+import { theme } from '@/shared/constants/theme';
 -import { UpcomingReminderCard } from '@/components/UpcomingReminderCard';
 +import { useDoseStore } from '@/shared/stores/doseStore';
 +import { useAuthStore } from '@/shared/stores/authStore';

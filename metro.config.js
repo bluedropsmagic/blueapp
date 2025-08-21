@@ -39,12 +39,4 @@ config.resolver = {
 config.maxWorkers = 1; // Reduce for faster builds
 config.resetCache = false;
 
-// Cache optimizations
-config.cacheStores = [
-  {
-    name: 'filesystem',
-    path: './node_modules/.cache/metro',
-  },
-];
-
 module.exports = config;
