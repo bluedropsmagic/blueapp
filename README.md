@@ -1,6 +1,6 @@
 # BlueApp - Health Tracking Application with Push Notifications
 
-A comprehensive health tracking application built with Expo and React Native, featuring local data storage and OneSignal for push notifications.
+A comprehensive health tracking application built with Expo and React Native, featuring Supabase integration for user authentication, data management, and OneSignal for push notifications.
 
 ## 🔔 Push Notifications with OneSignal
 
@@ -173,11 +173,10 @@ This project is configured for automatic deployment to Netlify when you push to 
 ## 🛠 **Tech Stack**
 
 - **Frontend**: React Native Web with Expo
-- **Data Storage**: Local storage with Zustand persistence
-- **Authentication**: Local user management system
+- **Backend**: Supabase (PostgreSQL database, Authentication, Real-time subscriptions)
 - **Notifications**: OneSignal for push notifications
 - **Routing**: Expo Router with file-based routing
-- **State Management**: Zustand with secure local persistence
+- **State Management**: Zustand with persistence
 - **Styling**: StyleSheet with responsive design
 - **Icons**: Lucide React Native
 - **Charts**: React Native Chart Kit
@@ -213,7 +212,10 @@ This project is configured for automatic deployment to Netlify when you push to 
 ## 🔧 **Configuration**
 
 ### Environment Variables
-No environment variables required - all data is stored locally for privacy and security.
+```env
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
 ### OneSignal Configuration ✅ **ALREADY CONFIGURED**
 ```typescript
