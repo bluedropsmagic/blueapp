@@ -54,6 +54,7 @@ export default function RootLayout() {
         
         // Dynamic import to avoid SSR issues
         const { useNotificationStore } = await import('@/stores/notificationStore')
+import { useFrameworkReady } from '@/hooks/useFrameworkReady'
         const notificationStore = useNotificationStore.getState();
         
         // Initialize with timeout to prevent hanging
