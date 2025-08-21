@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "EXPO_NO_TELEMETRY=1 npx expo start --max-workers 1",
-    "build:web": "NODE_ENV=production npx expo export --platform web --minify",
-    "build": "NODE_ENV=production npx expo export --platform web --minify",
+    "build:web": "NODE_ENV=production npx expo export --platform web",
+    "build": "NODE_ENV=production npx expo export --platform web",
     "build:fast": "npx expo export --platform web --no-minify",
     "start": "npx expo start --max-workers 1",
     "preview": "npx serve dist",
