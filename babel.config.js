@@ -10,10 +10,10 @@ module.exports = function (api) {
         regenerator: false,
       }],
       // Remove console logs in production
-      process.env.NODE_ENV === 'production' && [
+      ...(process.env.NODE_ENV === 'production' ? [[
         'transform-remove-console',
         { exclude: ['error', 'warn'] }
-      ],
-    ],
+      ]] : []),
+    ].filter(Boolean),
   };
 };
