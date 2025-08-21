@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, Dimensions } from 'react-native';
-import { useFrameworkReady } from '@/shared/hooks/useFrameworkReady';
+import { useFrameworkReady } from '../hooks/useFrameworkReady';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { useAuthStore } from '@/shared/stores/authStore';
 import * as SplashScreen from 'expo-splash-screen';
@@ -54,7 +54,6 @@ export default function RootLayout() {
         
         // Dynamic import to avoid SSR issues
         const { useNotificationStore } = await import('@/stores/notificationStore')
-import { useFrameworkReady } from '@/hooks/useFrameworkReady';
         const notificationStore = useNotificationStore.getState();
         
         // Initialize with timeout to prevent hanging
