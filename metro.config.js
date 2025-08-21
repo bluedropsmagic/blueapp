@@ -2,41 +2,33 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// Build optimizations
+// Ensure proper resolver configuration
+config.resolver.platforms = ['ios', 'android', 'native', 'web'];
+
+// Add support for additional file extensions
+config.resolver.sourceExts.push('sql');
+
+// Web-specific optimizations
+if (process.env.EXPO_PLATFORM === 'web') {
+  config.resolver.alias = {
+    ...config.resolver.alias,
+    'react-native$': 'react-native-web',
+  };
+}
+
+// Fix memory issues with transformer
 config.transformer = {
   ...config.transformer,
-  // Enable minification for faster builds
-  minifierPath: require.resolve('metro-minify-terser'),
   minifierConfig: {
-    // Optimize for size and speed
-    keep_fnames: false,
+    // Reduce memory usage
+    keep_fnames: true,
     mangle: {
-      keep_fnames: false,
-      toplevel: true,
-    },
-    compress: {
-      drop_console: process.env.NODE_ENV === 'production',
-      drop_debugger: true,
-      pure_funcs: ['console.log', 'console.info', 'console.debug'],
+      keep_fnames: true,
     },
   },
 };
 
-// Resolver optimizations
-config.resolver = {
-  ...config.resolver,
-  platforms: ['ios', 'android', 'native', 'web'],
-  alias: {
-    '@': './src',
-    '@/sections': './src/sections',
-    '@/shared': './src/shared',
-  },
-  // Enable tree shaking
-  unstable_enablePackageExports: true,
-};
-
-// Performance optimizations
-config.maxWorkers = 1; // Reduce for faster builds
-config.resetCache = false;
+// Increase memory limits for Metro
+config.maxWorkers = 2;
 
 module.exports = config;

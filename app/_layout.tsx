@@ -2,11 +2,11 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform, Dimensions } from 'react-native';
-import { useFrameworkReady } from '../hooks/useFrameworkReady';
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { useAuthStore } from '@/shared/stores/authStore';
+import { useAuthStore } from '@/stores/authStore';
 import * as SplashScreen from 'expo-splash-screen';
-import { HelpBalloon } from '@/shared/components/HelpBalloon';
+import { HelpBalloon } from '@/components/HelpBalloon';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -53,8 +53,7 @@ export default function RootLayout() {
         await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Dynamic import to avoid SSR issues
-        const { useNotificationStore } = await import('@/shared/stores/notificationStore')
-import { useFrameworkReady } from '@/hooks/useFrameworkReady'
+        const { useNotificationStore } = await import('@/stores/notificationStore');
         const notificationStore = useNotificationStore.getState();
         
         // Initialize with timeout to prevent hanging
