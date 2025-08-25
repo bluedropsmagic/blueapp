@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "EXPO_NO_TELEMETRY=1 npx expo start --clear --max-workers 2",
-    "build:web": "npx expo export --platform web",
-    "build": "npx expo export --platform web",
+    "build:web": "EXPO_NO_TELEMETRY=1 npx expo export --platform web",
+    "build": "EXPO_NO_TELEMETRY=1 npx expo export --platform web",
     "start": "npx expo start --max-workers 2",
     "preview": "npx serve dist",
     "lint": "npx expo lint"
