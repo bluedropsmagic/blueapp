@@ -4,10 +4,6 @@
   "framework": null,
   "rewrites": [
     {
-      "source": "/thankyou",
-      "destination": "/thankyou.html"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

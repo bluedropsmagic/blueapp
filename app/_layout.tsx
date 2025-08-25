@@ -7,7 +7,6 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import { useAuthStore } from '@/stores/authStore';
 import * as SplashScreen from 'expo-splash-screen';
 import { HelpBalloon } from '@/components/HelpBalloon';
-import { BoltDevMenu } from '@/components/BoltDevMenu';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -191,7 +190,6 @@ export default function RootLayout() {
       </Stack>
       <StatusBar style="auto" />
       <HelpBalloon />
-      <BoltDevMenu />
     </>
   );
 }
