@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { addLocalDose, getLocalDoses } from '@/lib/localStorage';
+import { supabase, addDoseRecord, getUserDoses } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 
 interface DoseSchedule {
@@ -48,7 +48,7 @@ interface DoseStore {
   checkAndResetDaily: () => void;
   getTodaySymptomEntry: () => DailySymptomEntry | null;
   saveDailySymptoms: (symptoms: { [symptomId: number]: number }) => void;
-  syncWithLocalStorage: () => Promise<void>;
+  syncWithSupabase: () => Promise<void>;
 }
 
 // Storage adapter que funciona tanto no web quanto mobile
@@ -154,11 +154,11 @@ export const useDoseStore = create<DoseStore>()(
           doses: [...state.doses, newDose]
         }));
         
-        // Store in local storage in background
+        // Sync with Supabase in background
         const { user } = useAuthStore.getState();
         if (user) {
-          addLocalDose(user.id, type).catch(error => {
-            console.warn('Failed to store dose locally:', error);
+          addDoseRecord(user.id, type).catch(error => {
+            console.warn('Failed to sync dose with Supabase:', error);
           });
         }
       },
@@ -311,18 +311,43 @@ export const useDoseStore = create<DoseStore>()(
           get().addSymptom(symptomId, rating);
         });
       },
-
-      syncWithLocalStorage: async () => {
+      syncWithSupabase: async () => {
         const { user } = useAuthStore.getState();
         if (!user) return;
 
         try {
-          console.log('Syncing doses with local storage...');
-          // This function now just ensures data consistency
-          // All data is already stored locally through the store persistence
-          console.log('Local storage sync completed');
+          // Fetch recent doses from Supabase
+          const supabaseDoses = await getUserDoses(user.id, 50);
+          
+          // Convert Supabase doses to local format
+          const convertedDoses: Dose[] = supabaseDoses.map(dose => ({
+            id: dose.id,
+            timestamp: new Date(dose.taken_at).getTime(),
+            type: dose.dose_type,
+          }));
+
+          // Merge with local doses (avoid duplicates)
+          const { doses: localDoses } = get();
+          const mergedDoses = [...localDoses];
+          
+          convertedDoses.forEach(supabaseDose => {
+            const exists = localDoses.some(localDose => 
+              Math.abs(localDose.timestamp - supabaseDose.timestamp) < 60000 && // Within 1 minute
+              localDose.type === supabaseDose.type
+            );
+            
+            if (!exists) {
+              mergedDoses.push(supabaseDose);
+            }
+          });
+
+          // Sort by timestamp
+          mergedDoses.sort((a, b) => b.timestamp - a.timestamp);
+
+          set({ doses: mergedDoses });
+          console.log('Successfully synced doses with Supabase');
         } catch (error) {
-          console.warn('Failed to sync with local storage:', error);
+          console.warn('Failed to sync with Supabase:', error);
         }
       }
     }),

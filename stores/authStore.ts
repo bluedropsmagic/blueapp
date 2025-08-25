@@ -2,14 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { 
-  createLocalUser, 
-  signInLocalUser, 
-  getCurrentSession, 
-  signOutLocalUser, 
-  updateLocalProfile,
-  Profile 
-} from '@/lib/localStorage';
+import { supabase, Profile, getOrCreateProfile, updateUserProfile, testConnection } from '@/lib/supabase';
+import { AuthError, User } from '@supabase/supabase-js';
 
 interface AuthUser {
   id: string;
@@ -99,8 +93,8 @@ export const useAuthStore = create<AuthStore>()(
         console.log('Clearing invalid session...');
         
         try {
-          // Sign out from local storage
-          await signOutLocalUser();
+          // Sign out from Supabase to clear invalid tokens
+          await supabase.auth.signOut();
           
           // Clear all local storage
           const storageKeys = ['auth-storage', 'onboarding-storage', 'dose-storage', 'settings-storage'];
@@ -110,8 +104,15 @@ export const useAuthStore = create<AuthStore>()(
           if (Platform.OS === 'web' && typeof window !== 'undefined') {
             // Clear localStorage
             Object.keys(localStorage).forEach(key => {
-              if (key.includes('user_') || key.includes('profile_') || key.includes('doses_') || key === 'current_session') {
+              if (key.includes('supabase') || key.includes('auth') || key.includes('sb-')) {
                 localStorage.removeItem(key);
+              }
+            });
+
+            // Clear sessionStorage
+            Object.keys(sessionStorage).forEach(key => {
+              if (key.includes('supabase') || key.includes('auth') || key.includes('sb-')) {
+                sessionStorage.removeItem(key);
               }
             });
           }
@@ -143,34 +144,83 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ isLoading: true });
           
-          console.log('Initializing local authentication...');
+          // Test Supabase connection first
+          const connectionOk = await testConnection();
+          if (!connectionOk) {
+            console.warn('Supabase connection test failed, but continuing...');
+          }
           
-          // Check for existing local session
-          const session = await getCurrentSession();
+          // Check for existing Supabase session
+          const { data: { session }, error } = await supabase.auth.getSession();
           
-          if (session?.user && session?.profile) {
-            const authUser: AuthUser = {
-              id: session.user.id,
-              name: session.profile.name,
-              email: session.profile.email,
-            };
-
-            set({
-              user: authUser,
-              isAuthenticated: true,
-              isInitialized: true,
-              isLoading: false,
-              isNewUser: false,
-            });
+          if (error) {
+            console.error('Error getting session:', error);
             
-            console.log('Local session restored for user:', session.user.email);
+            // If it's a JWT error, clear the invalid session
+            if (error.message?.includes('JWT') || error.message?.includes('user_not_found') || error.message?.includes('invalid_token')) {
+              console.log('Detected invalid JWT token, clearing session...');
+              await get().clearInvalidSession();
+              return;
+            }
+            
+            set({ isInitialized: true, isLoading: false });
+            return;
+          }
+
+          if (session?.user) {
+            try {
+              // Verify the user still exists by making a simple API call
+              const { data: userData, error: userError } = await supabase.auth.getUser();
+              
+              if (userError) {
+                console.error('Error verifying user:', userError);
+                
+                // If user doesn't exist or token is invalid, clear session
+                if (userError.message?.includes('JWT') || userError.message?.includes('user_not_found') || userError.message?.includes('invalid_token')) {
+                  console.log('User verification failed, clearing session...');
+                  await get().clearInvalidSession();
+                  return;
+                }
+                
+                set({ isInitialized: true, isLoading: false });
+                return;
+              }
+
+              // Get or create user profile using helper function
+              const profile = await getOrCreateProfile(session.user.id);
+
+              if (profile) {
+                const authUser: AuthUser = {
+                  id: session.user.id,
+                  name: profile.name,
+                  email: profile.email,
+                };
+
+                set({
+                  user: authUser,
+                  isAuthenticated: true,
+                  isInitialized: true,
+                  isLoading: false,
+                  isNewUser: false,
+                });
+              } else {
+                console.error('Failed to get or create profile');
+                set({ isInitialized: true, isLoading: false });
+              }
+            } catch (profileError) {
+              console.error('Error during profile verification:', profileError);
+              
+              // If there's any error with the profile, clear the session
+              await get().clearInvalidSession();
+            }
           } else {
             set({ isInitialized: true, isLoading: false });
-            console.log('No valid local session found');
           }
         } catch (error) {
           console.error('Error initializing auth:', error);
-          set({ isInitialized: true, isLoading: false });
+          
+          // If initialization fails completely, clear everything
+          await get().clearInvalidSession();
         }
       },
       
@@ -178,29 +228,45 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         
         try {
-          const result = await signInLocalUser(email.toLowerCase().trim(), password.trim());
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: email.toLowerCase().trim(),
+            password: password.trim(),
+          });
 
-          if (result) {
-            const authUser: AuthUser = {
-              id: result.user.id,
-              name: result.profile.name,
-              email: result.profile.email,
-            };
-
-            set({
-              user: authUser,
-              isAuthenticated: true,
-              isLoading: false,
-              isNewUser: false,
-            });
-            
-            console.log('User signed in successfully:', email);
-            return true;
-          } else {
-            console.log('Sign in failed for:', email);
+          if (error) {
+            console.error('Sign in error:', error);
             set({ isLoading: false });
             return false;
           }
+
+          if (data.user) {
+            // Get or create user profile using helper function
+            const profile = await getOrCreateProfile(data.user.id);
+
+            if (profile) {
+              const authUser: AuthUser = {
+                id: data.user.id,
+                name: profile.name,
+                email: profile.email,
+              };
+
+              set({
+                user: authUser,
+                isAuthenticated: true,
+                isLoading: false,
+                isNewUser: false,
+              });
+              
+              return true;
+            } else {
+              console.error('Failed to get or create profile after sign in');
+              set({ isLoading: false });
+              return false;
+            }
+          }
+
+          set({ isLoading: false });
+          return false;
         } catch (error) {
           console.error('Sign in error:', error);
           set({ isLoading: false });
@@ -212,37 +278,57 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         
         try {
-          // Check if user already exists
-          const existingSession = await signInLocalUser(email.toLowerCase().trim(), 'dummy');
-          if (existingSession) {
-            console.log('User already exists:', email);
+          const { data, error } = await supabase.auth.signUp({
+            email: email.toLowerCase().trim(),
+            password: password.trim(),
+            options: {
+              data: {
+                name: name.trim(),
+              }
+            }
+          });
+
+          if (error) {
+            console.error('Sign up error:', error);
             set({ isLoading: false });
             return false;
           }
-          
-          const result = await createLocalUser(name.trim(), email.toLowerCase().trim(), password.trim());
 
-          if (result) {
-            const authUser: AuthUser = {
-              id: result.user.id,
-              name: result.profile.name,
-              email: result.profile.email,
-            };
+          if (data.user) {
+            // Check if user is already confirmed (immediate sign up)
+            if (data.user.email_confirmed_at || data.session) {
+              // Get or create user profile using helper function
+              const profile = await getOrCreateProfile(data.user.id);
 
-            set({
-              user: authUser,
-              isAuthenticated: true,
-              isLoading: false,
-              isNewUser: true,
-            });
-            
-            console.log('User signed up successfully:', email);
-            return true;
-          } else {
-            console.log('Sign up failed for:', email);
-            set({ isLoading: false });
-            return false;
+              if (profile) {
+                const authUser: AuthUser = {
+                  id: data.user.id,
+                  name: profile.name,
+                  email: profile.email,
+                };
+
+                set({
+                  user: authUser,
+                  isAuthenticated: true,
+                  isLoading: false,
+                  isNewUser: true,
+                });
+                
+                return true;
+              } else {
+                console.error('Failed to get or create profile after sign up');
+                set({ isLoading: false });
+                return false;
+              }
+            } else {
+              // User needs email confirmation
+              set({ isLoading: false });
+              return false;
+            }
           }
+
+          set({ isLoading: false });
+          return false;
         } catch (error) {
           console.error('Sign up error:', error);
           set({ isLoading: false });
@@ -257,7 +343,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
 
         try {
-          const success = await updateLocalProfile(user.id, { name: name.trim() });
+          const success = await updateUserProfile(user.id, { name: name.trim() });
 
           if (success) {
             // Update local user state
@@ -267,7 +353,6 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false,
             });
 
-            console.log('Profile updated successfully');
             return true;
           } else {
             set({ isLoading: false });
@@ -284,10 +369,14 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
         
         try {
-          // Sign out from local storage
-          await signOutLocalUser();
+          // Sign out from Supabase
+          const { error } = await supabase.auth.signOut();
           
-          // Clear all local storage
+          if (error) {
+            console.error('Error signing out from Supabase:', error);
+          }
+          
+          // Clear all local storage regardless of Supabase error
           const storageKeys = ['auth-storage', 'onboarding-storage', 'dose-storage', 'settings-storage'];
           
           await Promise.all(
@@ -298,9 +387,21 @@ export const useAuthStore = create<AuthStore>()(
           if (Platform.OS === 'web' && typeof window !== 'undefined') {
             // Clear localStorage
             Object.keys(localStorage).forEach(key => {
-              if (key.includes('user_') || key.includes('profile_') || key.includes('doses_') || key === 'current_session') {
+              if (key.includes('supabase') || key.includes('auth') || key.includes('sb-')) {
                 localStorage.removeItem(key);
               }
+            });
+
+            // Clear sessionStorage
+            Object.keys(sessionStorage).forEach(key => {
+              if (key.includes('supabase') || key.includes('auth') || key.includes('sb-')) {
+                sessionStorage.removeItem(key);
+              }
+            });
+
+            // Clear any cookies related to auth
+            document.cookie.split(";").forEach(function(c) { 
+              document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
             });
           }
           
