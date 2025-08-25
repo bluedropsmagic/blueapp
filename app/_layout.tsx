@@ -34,17 +34,17 @@ export default function RootLayout() {
       try {
         await initializeAuth();
         
-        // Test Supabase connection and sync data
-        const { syncWithSupabase } = await import('@/stores/doseStore');
-        const doseStore = syncWithSupabase;
+        // Sync with local storage
+        const { syncWithLocalStorage } = await import('@/stores/doseStore');
+        const doseStore = syncWithLocalStorage;
         if (typeof doseStore === 'function') {
           doseStore().catch(error => {
-            console.warn('Initial data sync failed:', error);
+            console.warn('Local storage sync failed:', error);
           });
         }
       } catch (error) {
         console.error('Auth initialization failed:', error);
-        // Auth store will handle clearing invalid sessions internally
+        // Auth store will handle clearing invalid sessions
       }
     };
     
@@ -153,13 +153,7 @@ export default function RootLayout() {
 
       // Add global error handler for unhandled promise rejections
       const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-        // Check if it's a Supabase JWT error
-        if (event.reason?.message?.includes('JWT') || 
-            event.reason?.message?.includes('user_not_found') || 
-            event.reason?.message?.includes('invalid_token')) {
-          console.warn('Detected invalid JWT token, will be handled by auth store');
-          event.preventDefault(); // Prevent the error from being logged to console
-        }
+        console.warn('Unhandled promise rejection:', event.reason);
       };
 
       window.addEventListener('unhandledrejection', handleUnhandledRejection);

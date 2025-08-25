@@ -73,8 +73,8 @@ export default function HomeScreen() {
       let totalMinutes = hours * 60 + minutes;
       
       if (period === 'PM' && hours !== 12) {
-        totalMinutes += 12 * 60;
-      } else if (period === 'AM' && hours === 12) {
+          // Note: addDose already handles local storage through the store
+          console.log('Dose added locally for user:', user.id);
         totalMinutes = minutes;
       }
       
