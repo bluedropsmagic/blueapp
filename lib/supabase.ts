@@ -2,8 +2,17 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = 'https://pvjtvoefgprtvculhfpw.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2anR2b2VmZ3BydHZjdWxoZnB3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3MjYxOTEsImV4cCI6MjA3MTMwMjE5MX0.-fbr2wnhf6Ry6-4yUYfTqx4A5XNUBEBB4Awm2ciPME8';
+
+// Validate credentials
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase credentials are missing');
+  throw new Error('Supabase configuration error');
+}
+
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key configured:', supabaseAnonKey ? 'Yes' : 'No');
 
 // Custom storage adapter for Supabase Auth
 const ExpoSecureStoreAdapter = {
@@ -44,21 +53,24 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
-    flowType: 'pkce',
+    flowType: 'implicit',
     // Enhanced error handling for invalid tokens
     onAuthStateChange: (event, session) => {
       if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed successfully');
+        console.log('✅ Token refreshed successfully');
       } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
+        console.log('👋 User signed out');
       } else if (event === 'SIGNED_IN') {
-        console.log('User signed in');
+        console.log('🔐 User signed in successfully');
+      } else if (event === 'USER_UPDATED') {
+        console.log('👤 User updated');
       }
     },
   },
   global: {
     headers: {
       'X-Client-Info': 'blueapp-expo@1.0.0',
+      'apikey': supabaseAnonKey,
     },
   },
 });
@@ -286,20 +298,33 @@ export const clearInvalidSession = async (): Promise<void> => {
 // Helper function to test connection
 export const testConnection = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
+    console.log('🔍 Testing Supabase connection...');
+    
+    // Test basic connection first
+    const { data: healthCheck, error: healthError } = await supabase
       .from('profiles')
-      .select('count')
+      .select('id')
       .limit(1);
 
-    if (error) {
-      console.error('Connection test failed:', error);
+    if (healthError) {
+      console.error('❌ Supabase connection test failed:', healthError);
+      console.error('Error details:', {
+        message: healthError.message,
+        details: healthError.details,
+        hint: healthError.hint,
+        code: healthError.code
+      });
       return false;
     }
 
-    console.log('Supabase connection test successful');
+    console.log('✅ Supabase connection test successful');
+    console.log('📊 Connection details:', {
+      url: supabaseUrl,
+      hasData: healthCheck ? healthCheck.length > 0 : false
+    });
     return true;
   } catch (error) {
-    console.error('Connection test error:', error);
+    console.error('❌ Unexpected connection test error:', error);
     return false;
   }
 };

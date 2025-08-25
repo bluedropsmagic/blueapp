@@ -144,10 +144,14 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ isLoading: true });
           
-          // Test Supabase connection first
+          console.log('🚀 Initializing auth store...');
+          
+          // Test Supabase connection first with detailed logging
           const connectionOk = await testConnection();
           if (!connectionOk) {
-            console.warn('Supabase connection test failed, but continuing...');
+            console.warn('⚠️ Supabase connection test failed, but continuing...');
+          } else {
+            console.log('✅ Supabase connection verified');
           }
           
           // Check for existing Supabase session
