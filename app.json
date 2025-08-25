@@ -20,6 +20,7 @@
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png",
+      "domain": "bluedrops.app",
       "viewport": {
         "width": "device-width",
         "initialScale": 1,
